@@ -1,0 +1,190 @@
+---
+title: "STATS 782 Assignment 3"
+author: "Kieran Baker, kbak303"
+date: "1 October 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 1
+
+My simple method was to create a contour map of the implicit function (with RHS set to 0), then to plot the contour at level 0.
+
+```{r}
+x = seq(-2, 2, length=1000)                                   # making vectors of x and y values
+y = seq(-2, 2, length=1000)
+
+z = outer(x, y, function(x, y) (x^2 + y^2 - 1)^3 - x^2*y^3)   # creating the contour map
+
+contour(x, y, z, levels=0, drawlabels=F, axes=F)              # plot the contour at level 0
+axis(1, pos=0, at=c(-2, -1, 1, 2))
+axis(2, pos=0, las=2, at=c(-2, -1, 1, 2))
+title('Plotting an implicit function')
+```
+
+
+## 2
+
+```{r}
+grads = seq(-2.6, 2.6, length=32)         # making vector of gradients for the black lines
+
+xs = seq(-1, 1, length=100)               # making a vector of x-coordinates
+
+black.lines = outer(xs, grads)            # a matrix whose columns are the y-coordinates of the black lines
+
+par(mai=c(0.8, 2.6, 0.8, 2.6))            # adjusting the margins of the plot
+
+matplot(black.lines, type='l',            # use the function matplot() to plot all the columns of the matrix,
+        lty=1, col='black', axes=F,       # axes are disabled, lines changed to regular black lines, label
+        ylim=c(-2, 2), ylab='')           # is omitted.
+
+
+segments(20, -3, y1=3, lwd=3, col='red')  # drawing the red lines
+segments(80, -3, y1=3, lwd=3, col='red')
+
+```
+
+
+## 3
+a)
+```{r}
+# Reading in the csv with stringsAsFactors set to false so that the dates will be read as strings rather than factors
+ss = read.csv('sinkingstats-1.csv', stringsAsFactors=F)
+# This sets the first row of values as the column names of the dataframe, so we rename the columns:
+colnames(ss) = c('Quarter', 'NAt', 'RoW')
+# and add the old first row back in
+ss = rbind(c('Quarter' = 'Sep-39', 'NAt' = 105, 'RoW' = 90), ss)
+# Creating a matrix from the dataframe to use in the boxplot() function:
+x = as.matrix(ss[-1])
+rownames(x) = ss[, 1]
+# setting the x-axis to extend all the way to the y-axis (otherwise there will be a gap between the y-axis and the first bar)
+par(xaxs='i')
+# creating an empty boxplot with the correct dimensions so that we can draw in the horizontal lines and colour the background
+# before drawing in the bars:
+barplot(rep(NA, length=71), xaxt='n', yaxt='n', ylim=c(0, 900), space=0)
+# colouring the background (for some reason using bg[2] as the third parameter extends the rectangle too far so 71 is used instead)
+bg = par('usr')
+rect(bg[1], bg[3], 71, bg[4], col='lemonchiffon')
+# drawing horixontal lines across the background from the y-axis ticks
+segments(x0=0, y0=0:8*100, x1=71)
+# creating the boxplot of the data, overlaying the coloured background and horizontal lines, setting space between bars to 0
+# and not including any axes (for some reason axes=F doesn't work so blocked the axes individually)
+barplot(t(x), space=0, add=T, yaxt='n', xaxt='n', col=c('red', 'orange'))
+# making a vector of dates for x-axis labels (would have been easier to just take the first column of the dataframe but I like this)
+xlabels = paste(c('Sep', 'Dec', 'Mar', 'Jun'), c(39, 39, rep(40:44, each=4), 45, 45), sep='-')
+# creating the axes, with bolded text set slightly smaller than the other text
+axis(1, las=2, labels=xlabels, at=seq(0, 71, by=3), font=2, cex.axis=0.8)
+axis(2, at=0:9*100, las=1, font=2)
+# making the legend, with bolded text
+legend(47, 810, legend=c('Rest of World', 'North Atlantic'), fill=c('orange', 'red'), text.font=2)
+# drawing the arrow, apparently a filled arrowhead is impossible in base R so set the length of the arrowhead to 0
+arrows(x0=57, y0=420, x1=39, y1=200, lwd=4, length=0)
+# and used a triangle point for the arrowhead (1.5x larger than normal)
+points(x=39, y=200, pch=17, cex=1.5)
+# finally drawing the textbox, with left-justified, bolded text and bolded border.
+rect(56, 300, 69, 500, lwd=2, col='white')
+text(x=56, y=382, labels='Capture of\npapers\nfrom U559', font=2, pos=4)
+```
+
+b)
+Without a title or a y-axis label it is impossible to know what the graph is supposed to represent. Without the context of the introduction to question 3 it would be completely useless, unless you knew a lot of history and could guess from words like 'U-boat' and 'U559', and even then you would only know it had something to do with WW2 naval battles. Even given context from the introduction there is no indication of what the bars actually measure (e.g. is it number of ships sunk, number of fatalities from sunk ships, etc.). This graph is not very good because the job of data visualisation is to convey information, and it is not clear what information is being conveyed.
+
+c)
+```{r}
+# creating a vector of months to use as labels on the vertical axes (this time I did use the dataframe)
+months = substring(ss[,1], 1, 3)[c(T, F)]
+# creating a layout with two columns which each fill half the plotting area
+layout(matrix(c(1, 1, 1, 2, 2, 2), nc=2))
+
+# making two vectors of values for the barplots which are reversed, with the first one multiplied by -1 to make the bars go right-to-left
+a = rev(-1*as.numeric(t(x[,2])))
+b = rev(as.numeric(t(x[,1])))
+
+### LHS barplot:
+# margin widths set so that there will be no space between the barplots
+par(mai=c(0.5,0.5,0.5,0), yaxs='r', xaxs='i')
+# plot set to horizontal, axes not drawn in this function
+barplot(a, horiz=T, xaxt='n', yaxt='n', xlim=c(-725,0), col='limegreen', space=1)
+# drawing x-axis
+axis(1, labels=7:0*100, at=-7:0*100, font=2, cex.axis=1.5)
+# drawing an L-shaped box around the LHS plot, this was the only way I could get the axes to touch but it works
+box(bty='L', lwd=2)
+# drawing the grey lines seperating the years across the LHS plot
+# should have redrawn the plot after this as in part (a) but this would draw it on the RHS so just going with this
+# since you can barely see the overlapping anyway
+segments(x0=-725, y0=c(142, seq(134, 6, by=-24), 6, -1), x1=0, lwd=0.5, col='grey')
+# adding in the month labels using text()
+text(x=-700, y=seq(142, 0, by=-4), labels=months, font=2, cex=0.75)
+# adding title for LHS plot and years in the margins using mtext()
+mtext('Rest of World', side=3, line=-1.2, font=2, cex=0.75)
+mtext(c(1939, 1940, 1941, 1942, 1943, 1944, 1945, 'VJ'), side=2, line=0.2, at=c(140, seq(132, 4, by=-24), -1), las=2, cex=0.75)
+
+### RHS barplot:
+par(mai=c(0.5,0,0.5,0.5))
+barplot(b, horiz=T, xaxt='n', yaxt='n', xlim=c(0, 725), col='deepskyblue4', space=0.5)
+
+axis(1, at=0:7*100, font=2, cex.axis=1.5)
+# had to use a U-shaped box xince there is no box which covers only the bottom and the right hand side but that's OK because:
+box(bty='u', lwd=2)
+# we cover the middle line with a blue line which seperates the plots
+segments(x0=0, y0=0, y1=142, col='deepskyblue4')
+# drawing the lines, for some reason the co-ordinate system of the RHS plot is completely different to the LHS so these numbers were obtained by guess-and-check
+segments(x0=0, y0=c(106, seq(100, 6, by=-18), 4, -1), x1=725, lwd=0.5, col='grey')
+# month labels
+text(x=700, y=seq(106, 0, by=-3), labels=months, font=2, cex=0.75)
+# title, years, and bottom axis label using mtext()
+mtext('North Atlantic', side=3, line=-1.2, font=2, cex=0.75)
+mtext(c(1939, 1940, 1941, 1942, 1943, 1944, 1945, 'VE'), side=4, line=0.2, at=c(104, seq(98, 4, by=-18), 4), las=2, cex=0.75)
+mtext('(thousands of tons)', side=1, font=2, line=2.5, at=0, cex=1.25)
+
+# drawing the arrow and text reading 'U-110' similarly to part (a), I found a way to obtained rotated triangle points online using something called Windows Glyph List but I only have linux so went with a diamond shape instead 
+points(x=336, y=76, pch=18, col='darkgreen', cex=2)
+arrows(x0=336, y0=76, x1=600, length=0, col='darkgreen', lwd=2)
+text(x=640, y=76, labels='U-110', font=3)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
